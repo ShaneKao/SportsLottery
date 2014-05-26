@@ -1,0 +1,125 @@
+data=read.table("NBA/cluster.txt",sep=",",header=TRUE,stringsAsFactors=FALSE) 
+names(data)
+#########################################
+team=c()
+team[grep("Hawks",data$Team)]="ATL"
+team[grep("Celtics",data$Team)]="BOS"
+team[grep("New Jersey",data$Team)]="NJN"
+team[grep("Brooklyn",data$Team)]="BKN"
+team[grep("Bobcats",data$Team)]="CHA"
+team[grep("Bulls",data$Team)]="CHI"
+team[grep("Cavaliers",data$Team)]="CLE"
+team[grep("Mavericks",data$Team)]="DAL"
+team[grep("Nuggets",data$Team)]="DEN"
+team[grep("Pistons",data$Team)]="DET"
+team[grep("Warriors",data$Team)]="GSW"
+team[grep("Rockets",data$Team)]="HOU"
+team[grep("Pacers",data$Team)]="IND"
+team[grep("Clippers",data$Team)]="LAC"
+team[grep("Lakers",data$Team)]="LAL"
+team[grep("Grizzlies",data$Team)]="MEM"
+team[grep("Heat",data$Team)]="MIA"
+team[grep("Bucks",data$Team)]="MIL"
+team[grep("Timberwolves",data$Team)]="MIN"
+team[grep("Pelicans",data$Team)]="NOP"
+team[grep("Hornets",data$Team)]="NOH"
+team[grep("Knicks",data$Team)]="NYK"
+team[grep("Thunder",data$Team)]="OKC"
+team[grep("Magic",data$Team)]="ORL"
+team[grep("76ers",data$Team)]="PHI"
+team[grep("Suns",data$Team)]="PHX"
+team[grep("Blazers",data$Team)]="POR"
+team[grep("Kings",data$Team)]="SAC"
+team[grep("Spurs",data$Team)]="SAS"
+team[grep("Raptors",data$Team)]="TOR"
+team[grep("Jazz",data$Team)]="UTH"
+team[grep("Wizards",data$Team)]="WSH"
+data$Team=team
+###################################################
+(data$Team)[1:30]=paste("09",(data$Team)[1:30])
+(data$Team)[31:60]=paste("10",(data$Team)[31:60])
+(data$Team)[61:90]=paste("11",(data$Team)[61:90])
+(data$Team)[91:120]=paste("12",(data$Team)[91:120])
+(data$Team)[121:150]=paste("13",(data$Team)[121:150])
+(data$Team)[151:180]=paste("14",(data$Team)[151:180])
+##################################################
+model=kmeans(data[,-1],10,nstart=180)
+model$cluster
+cluster.team=data.frame(data$Team,model$cluster)
+##################################################
+playoffs=read.table("NBA/playoffs.txt",sep=",",header=TRUE,stringsAsFactors=FALSE) 
+names(playoffs)
+simple=function(x)
+{
+  y=c()
+  y[grep("Hawks",x)]="ATL"
+  y[grep("Celtics",x)]="BOS"
+  y[grep("New Jersey",x)]="NJN"
+  y[grep("Brooklyn",x)]="BKN"
+  y[grep("Bobcats",x)]="CHA"
+  y[grep("Bulls",x)]="CHI"
+  y[grep("Cavaliers",x)]="CLE"
+  y[grep("Mavericks",x)]="DAL"
+  y[grep("Nuggets",x)]="DEN"
+  y[grep("Pistons",x)]="DET"
+  y[grep("Warriors",x)]="GSW"
+  y[grep("Rockets",x)]="HOU"
+  y[grep("Pacers",x)]="IND"
+  y[grep("Clippers",x)]="LAC"
+  y[grep("Lakers",x)]="LAL"
+  y[grep("Grizzlies",x)]="MEM"
+  y[grep("Heat",x)]="MIA"
+  y[grep("Bucks",x)]="MIL"
+  y[grep("Timberwolves",x)]="MIN"
+  y[grep("Pelicans",x)]="NOP"
+  y[grep("Hornets",x)]="NOH"
+  y[grep("Knicks",x)]="NYK"
+  y[grep("Thunder",x)]="OKC"
+  y[grep("Magic",x)]="ORL"
+  y[grep("76ers",x)]="PHI"
+  y[grep("Suns",x)]="PHX"
+  y[grep("Blazers",x)]="POR"
+  y[grep("Kings",x)]="SAC"
+  y[grep("Spurs",x)]="SAS"
+  y[grep("Raptors",x)]="TOR"
+  y[grep("Jazz",x)]="UTH"
+  y[grep("Wizards",x)]="WSH"
+  y
+  
+}
+playoffs$Guest=simple(playoffs$Guest)
+playoffs$Home=simple(playoffs$Home)
+year=c(rep("09",85),rep("10",82),rep("11",81),rep("12",84),rep("13",85),rep("14",78))
+playoffs$Guest=paste(year,playoffs$Guest)
+playoffs$Home=paste(year,playoffs$Home)
+##################################################################
+find.cluster=function(x)
+{
+  cluster.team[cluster.team[,1]==x,2]
+}
+
+playoffs$GuestCluster=apply(cbind(playoffs$Guest),1,find.cluster)
+playoffs$HomeCluster=apply(cbind(playoffs$Home),1,find.cluster)
+
+
+money=function(G.Team,H.Team,H.diff,totalPTS,con) ##H.diff 是主隊讓分盤 ex 主讓1.5 輸入 -1.5
+{
+index=playoffs$GuestCluster==find.cluster(G.Team) & 
+  playoffs$HomeCluster==find.cluster(H.Team)
+sub=playoffs[index,]
+sub$sum=sub$PTS+sub$PTS.1
+sub$diff=sub$PTS-sub$PTS.1
+big.sum.p=sum(sub$sum>totalPTS)/length(sub$sum)
+small.sum.p=sum(sub$sum<totalPTS)/length(sub$sum)
+home.diff.p=sum(sub$PTS.1+(H.diff)>sub$PTS)/length(sub$sum)
+guest.diff.p=sum(sub$PTS.1+(H.diff)<sub$PTS)/length(sub$sum)
+a=ifelse(big.sum.p>con,"壓大分",ifelse(small.sum.p>con,"壓小分","十賭九輸"))
+b=ifelse(home.diff.p>con,"壓主勝",ifelse(guest.diff.p>con,"壓客勝","十賭九輸"))
+
+d=ifelse(big.sum.p>small.sum.p,paste("大",big.sum.p),paste("小",small.sum.p))
+e=ifelse(home.diff.p>guest.diff.p,paste("主",home.diff.p),paste("客",guest.diff.p))
+ref=sub
+list(a,b,d,e,ref)
+}
+
+money("14 IND","14 MIA",-6.5,183.5,0.7)
