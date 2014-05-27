@@ -32,9 +32,35 @@ NL.cluster.team=data.frame(NL.TOTAL$Tm,10+NL.model$cluster)
 ##################################################################
 library(XML)
 library(RCurl)
-webpage<-getURL("http://www.baseball-reference.com/teams/TOR/2014-schedule-scores.shtml")
-webpage <- readLines(tc <- textConnection(webpage)); close(tc)
-pagetree <- htmlTreeParse(webpage, error=function(...){}, useInternalNodes = TRUE)
-tablelines <- xpathSApply(pagetree, "//tr[@class='']", xmlValue) 
-a=strsplit(tablelines[2],"\n  ",fixed=FALSE, useBytes = TRUE)
-a
+
+
+  webpage<-getURL("http://www.baseball-reference.com/teams/STL/2009-schedule-scores.shtml")
+  webpage <- readLines(tc <- textConnection(webpage)); close(tc)
+  pagetree <- htmlTreeParse(webpage, error=function(...){}, useInternalNodes = TRUE)
+  tablelines <- xpathSApply(pagetree, "//tr[@class='']", xmlValue)
+  n=length(tablelines)
+  lines=strsplit(tablelines[2:n],"\n  ",fixed=FALSE, useBytes = TRUE)
+  datamatrix=matrix(0,length(lines),6)
+  for(i in 1:length(lines))
+  {
+  datamatrix[i,1:6]=(lines[[i]])[c(5:7,9:10,21)]
+  }
+  datamatrix[,1]=sub(" ",replacement="",datamatrix[,1])
+  datamatrix[,2]=ifelse(datamatrix[,2]==" @","Guest","Home")
+  datamatrix[,3]=sub(" ",replacement="",datamatrix[,3])
+  datamatrix[,4]=sub(" ",replacement="",datamatrix[,4])
+  datamatrix[,4]=sub("Game Preview, Matchups, and Tickets",replacement="",datamatrix[,4])
+  datamatrix[,5]=sub(" ",replacement="",datamatrix[,5])
+  datamatrix[,5]=sub("\n",replacement="",datamatrix[,5])
+  datamatrix[,6]=sub("\n",replacement="",datamatrix[,6])
+  datamatrix[,6]=sub(" ",replacement="",datamatrix[,6])
+  datamatrix=datamatrix[!(datamatrix[,4]==""),]
+
+tidydata=matrix(0,length(datamatrix[,1]),5)
+for(i in 1:length(datamatrix[,1]))
+{
+tidydata[i,1]=ifelse(datamatrix[i,2]=="Guest",datamatrix[i,1],datamatrix[i,3])
+tidydata[i,2]=ifelse(datamatrix[i,2]=="Home",datamatrix[i,1],datamatrix[i,3])
+tidydata[i,3]=ifelse(datamatrix[i,2]=="Guest",datamatrix[i,4],datamatrix[i,5])
+tidydata[i,4]=ifelse(datamatrix[i,2]=="Home",datamatrix[i,4],datamatrix[i,5])
+}
