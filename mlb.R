@@ -36,7 +36,5 @@ webpage<-getURL("http://www.baseball-reference.com/teams/TOR/2014-schedule-score
 webpage <- readLines(tc <- textConnection(webpage)); close(tc)
 pagetree <- htmlTreeParse(webpage, error=function(...){}, useInternalNodes = TRUE)
 tablelines <- xpathSApply(pagetree, "//tr[@class='']", xmlValue) 
-strsplit(tablelines[2]," ",fixed=FALSE, useBytes = TRUE)
-strsplit("a b c", " ")
-sub("\",replacement=" ",tablelines[1])  
-nchar(tablelines[1])
+a=strsplit(tablelines[2],"\n  ",fixed=FALSE, useBytes = TRUE)
+a
